@@ -117,7 +117,7 @@ func (c *Decoder) Decode() (IProtocolMessage, error) {
 
 			v, err := strconv.ParseInt(string(value), 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("%w: %v", ErrInvalidContentLength, err)
+				return nil, fmt.Errorf("%w: %w", ErrInvalidContentLength, err)
 			}
 			if v < 0 {
 				return nil, ErrInvalidContentLength
@@ -162,7 +162,7 @@ func (c *Decoder) Decode() (IProtocolMessage, error) {
 // IProtocolMessage is a DAP protocol message.
 type IProtocolMessage interface {
 	prepareForEncoding() error
-	setSeq(int)
+	setSeq(s int)
 }
 
 func (m *ProtocolMessage) setSeq(s int) { m.Seq = s }

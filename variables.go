@@ -1,8 +1,8 @@
 package dbg
 
 import (
-	"fmt"
 	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/traefik-contrib/yaegi-debug-adapter/pkg/dap"
@@ -117,7 +117,7 @@ func canBeNil(k reflect.Kind) bool {
 }
 
 type variableScope interface {
-	Variables(*Adapter) []*dap.Variable
+	Variables(a *Adapter) []*dap.Variable
 }
 
 type frameVars struct {
@@ -149,7 +149,7 @@ type arrayVars struct {
 func (v *arrayVars) Variables(a *Adapter) []*dap.Variable {
 	vars := make([]*dap.Variable, v.Len())
 	for i := range vars {
-		vars[i] = a.newVar(fmt.Sprint(i), v.Index(i))
+		vars[i] = a.newVar(strconv.Itoa(i), v.Index(i))
 	}
 	return vars
 }

@@ -93,7 +93,7 @@ func (w *writer) writeSchema(name string, s *jsonx.Schema) (typ typedata) {
 	}
 
 	if s.Not != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "type %q: not not supported, using interface{}\n", name)
+		_, _ = fmt.Fprintf(os.Stderr, "type %q: not supported, using interface{}\n", name)
 		return typedata{"interface{}", otherType, jsonx.SimpleTypes_Object}
 	}
 
@@ -262,9 +262,8 @@ func (w *writer) writeNullableType(name jsonx.SimpleTypes) (typ typedata) {
 }
 
 func (w *writer) writeObjectType(name string, s *jsonx.Schema) typedata {
-	if m, ok := s.Default.(map[string]interface{}); ok && len(m) == 0 {
-		// ok
-	} else if s.Default != nil {
+	m, ok := s.Default.(map[string]interface{})
+	if (!ok || len(m) != 0) && s.Default != nil {
 		fatalf("type %s: unsupported default: %v\n", name, s.Default)
 	}
 

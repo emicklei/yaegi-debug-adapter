@@ -5,6 +5,7 @@ import (
 )
 
 // Schema_Type Schema type.
+//
 //nolint:revive,stylecheck // references
 type Schema_Type []SimpleTypes
 

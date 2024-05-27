@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go/build"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
@@ -127,7 +126,7 @@ func main() {
 
 	var adp *dbg.Adapter
 	if asString {
-		b, err := ioutil.ReadFile(args[0])
+		b, err := os.ReadFile(args[0])
 		if err != nil {
 			//nolint:gocritic // TODO must be fixed
 			log.Fatal(err)
@@ -209,7 +208,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		//nolint:errcheck,staticcheck,gocritic // TODO must be fixed
+		//nolint:staticcheck,gocritic // TODO must be fixed
 		defer c.Close()
 
 		lf, addr := lf, c.RemoteAddr()
@@ -236,7 +235,7 @@ func main() {
 }
 
 func isScript(path string) (src string, ok bool) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return "", false
 	}

@@ -1,7 +1,5 @@
 run:
-  deadline: 10m
-  skip-files: [ ]
-  skip-dirs: [ ]
+  timeout: 10m
 
 linters-settings:
   govet:
@@ -25,11 +23,13 @@ linters-settings:
   gofumpt:
     extra-rules: true
   depguard:
-    list-type: blacklist
-    include-go-root: false
-    packages:
-      - github.com/sirupsen/logrus
-      - github.com/pkg/errors
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/instana/testify"
+            desc: not allowed
+          - pkg: "github.com/pkg/errors"
+            desc: Should be replaced by standard lib errors package
   gocritic:
     enabled-tags:
       - diagnostic
@@ -41,18 +41,57 @@ linters-settings:
       - octalLiteral
       - paramTypeCombine # already handle by gofumpt.extra-rules
       - unnamedResult
-      - ioutilDeprecated # compatibility with go1.16
     settings:
       hugeParam:
         sizeThreshold: 110
+  gosec:
+    excludes:
+      - G204 # Subprocess launched with variable
+      - G304 # Potential file inclusion via variable
+  errcheck:
+    exclude-functions:
+      - fmt.Fprintf
+  revive:
+    rules:
+      - name: struct-tag
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+        disabled: true
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+        disabled: true
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+        disabled: true
+      - name: unreachable-code
+      - name: redefines-builtin-id
+  perfsprint:
+    err-error: true
+    errorf: true
+    sprintf1: true
+    strconcat: false
 
 linters:
   enable-all: true
   disable:
-    - maligned # deprecated
-    - interfacer # deprecated
-    - scopelint # deprecated
-    - golint # deprecated
+    - execinquery # deprecated
+    - gomnd # deprecated
     - sqlclosecheck # not relevant (SQL)
     - rowserrcheck # not relevant (SQL)
     - cyclop # duplicate of gocyclo
@@ -60,18 +99,17 @@ linters:
     - dupl
     - wsl
     - nlreturn
-    - gomnd
-    - goerr113
+    - mnd
+    - err113
     - wrapcheck
     - exhaustive
-    - exhaustivestruct
+    - exhaustruct
     - testpackage
     - tparallel
     - paralleltest
     - prealloc
     - forcetypeassert
     - bodyclose # Too many false positives: https://github.com/timakin/bodyclose/issues/30
-    - ifshort # disable due to false-positive, the linter will be fixed https://github.com/esimonov/ifshort
     - gochecknoglobals
     - funlen
     - goconst
@@ -79,16 +117,17 @@ linters:
     - errchkjson
     - ireturn
     - gocognit # TODO must be enable in the future
+    - nonamedreturns
+    - musttag # TODO must be enable in the future
 
 issues:
   exclude-use-default: false
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
   exclude:
+    - 'Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked'
+    - 'exported (type|method|function) (.+) should have comment or be unexported'
     - 'ST1000: at least one file in a package should have a package comment'
-    - 'G204: Subprocess launched with variable'
-    - 'G304: Potential file inclusion via variable'
-    - 'exported: exported'
   exclude-rules:
     - path: internal/
       linters:
@@ -100,3 +139,9 @@ issues:
       linters:
         - forbidigo
 
+
+output:
+  sort-results: true
+  sort-order:
+    - linter
+    - file

@@ -106,6 +106,7 @@ type Patch []PatchOp
 
 // Apply applies the patch. Apply returns ErrNotFound if From or Path are
 // required and refer to a value that does not exist in v.
+//
 //nolint:gocyclo // TODO must be fixed
 func (op *PatchOp) Apply(v *interface{}) error { //nolint:gocritic // TODO must be fixed
 	path, err := op.Path.Parse()
@@ -179,7 +180,7 @@ var ErrNotFound = errors.New("not found")
 
 type jsonValue interface {
 	Get() interface{}
-	Set(interface{})
+	Set(u interface{})
 	Delete()
 }
 

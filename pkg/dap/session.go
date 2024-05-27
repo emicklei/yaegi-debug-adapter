@@ -15,10 +15,9 @@ var ErrStop = errors.New("stop")
 // Handler handles DAP events.
 type Handler interface {
 	// Initialize Called when the DAP session begins.
-	Initialize(*Session, *InitializeRequestArguments) (*Capabilities, error)
-
+	Initialize(s *Session, ccaps *InitializeRequestArguments) (*Capabilities, error)
 	// Process Called for each received DAP message. Returning an error will terminate the session.
-	Process(IProtocolMessage) error
+	Process(pm IProtocolMessage) error
 
 	// Terminate Called when the DAP session ends.
 	Terminate()

@@ -2,9 +2,9 @@ package iox
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -77,7 +77,7 @@ type StdioAddr int
 func (StdioAddr) Network() string { return "stdio" }
 
 // String implements net.Addr.
-func (a StdioAddr) String() string { return fmt.Sprint(int(a)) }
+func (a StdioAddr) String() string { return strconv.Itoa(int(a)) }
 
 // StdioConn is a net.Conn that reads stdin and writes stdout.
 type StdioConn struct{ s *Stdio }
