@@ -298,7 +298,7 @@ func (m *Event) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	m.Body, err = newEvent(m.Event)
+	m.Body, err = newEvent(x.Event)
 	if err != nil {
 		return err
 	}
