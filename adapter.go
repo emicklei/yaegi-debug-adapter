@@ -53,16 +53,18 @@ type Adapter struct {
 // NewEvalAdapter returns an Adapter that debugs a Go code represented as a
 // string.
 func NewEvalAdapter(src string, opts *Options) *Adapter {
-	return newAdapter((*interp.Interpreter).Compile, src, opts)
+	return NewAdapter((*interp.Interpreter).Compile, src, opts)
 }
 
 // NewEvalPathAdapter returns an Adapter that debugs Go code located at the
 // given path.
 func NewEvalPathAdapter(path string, opts *Options) *Adapter {
-	return newAdapter((*interp.Interpreter).CompilePath, path, opts)
+	return NewAdapter((*interp.Interpreter).CompilePath, path, opts)
 }
 
-func newAdapter(eval compileFunc, arg string, opts *Options) *Adapter {
+// NewAdapter returns a new Adapter that debugs Go code located at the
+// given path and compiles it with a given Interpreter compile function.
+func NewAdapter(eval compileFunc, arg string, opts *Options) *Adapter {
 	if opts == nil {
 		opts = new(Options)
 	}
