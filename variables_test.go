@@ -7,7 +7,7 @@ import (
 	"unsafe"
 )
 
-func TestNewVar(t *testing.T) {
+func TestNewVar_Value(t *testing.T) {
 	a := &Adapter{vars: newVariables()}
 	var b chan bool
 	u := unsafe.Pointer(a)
@@ -33,16 +33,37 @@ func TestNewVar(t *testing.T) {
 		{"string", reflect.ValueOf("shoe"), `"shoe"`},
 		{"float32", reflect.ValueOf(float32(3.14159)), "3.14159"},
 		{"float64", reflect.ValueOf(float64(3.14159)), "3.14159"},
-		{"[]int", reflect.ValueOf([]int{21}), "[]int"},
+		{"[]int", reflect.ValueOf([]int{21}), "[]int{21}"},
+		{"[]int", reflect.ValueOf([]int{21}), "[]int{21}"},
 		{"func", reflect.ValueOf(a.newVar), "func(string, reflect.Value) *dap.Variable"},
 		{"struct", reflect.ValueOf(a), "*dbg.Adapter"},
 		{"map", reflect.ValueOf(map[bool]bool{}), "map[bool]bool"},
-		{"unsafe", reflect.ValueOf(u), fmt.Sprintf("%v (reflect.Value)", u)},
+		{"unsafe", reflect.ValueOf(u), fmt.Sprintf("reflect.Value %v", u)},
 	}
 	for _, each := range cases {
 		t.Run(each.name, func(t *testing.T) {
 			dapVar := a.newVar(each.name, each.value)
 			if got, want := dapVar.Value, each.out; got != want {
+				t.Errorf("got [%[1]v:%[1]T] want [%[2]v:%[2]T]", got, want)
+			}
+		})
+	}
+}
+
+func TestValuePrinterSmallMaxLength(t *testing.T) {
+	cases := []struct {
+		name  string
+		value reflect.Value
+		out   string
+	}{
+		{"string", reflect.ValueOf("some long text that is cut"), `"some lo...`},
+		{"a := []int{12345678}", reflect.ValueOf([]int{12345678, 23456789}), "[]int{12..."},
+	}
+	for _, each := range cases {
+		t.Run(each.name, func(t *testing.T) {
+			vp := newValuePrinter(8)
+			vp.print(each.value)
+			if got, want := vp.String(), each.out; got != want {
 				t.Errorf("got [%[1]v:%[1]T] want [%[2]v:%[2]T]", got, want)
 			}
 		})

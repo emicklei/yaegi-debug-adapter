@@ -1,6 +1,7 @@
 package dbg
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -92,22 +93,9 @@ func (a *Adapter) newVar(name string, rv reflect.Value) *dap.Variable {
 		return v
 	}
 
-	switch rv.Kind() {
-	case rChan, rFunc, rInterface, rMap, rPtr, rSlice, rArray, rStruct:
-		v.Value = rv.Type().String()
-	case rInt, rInt8, rInt16, rInt32, rInt64:
-		v.Value = strconv.FormatInt(rv.Int(), 10)
-	case rUint8, rUint16, rUint, rUint32, rUint64, rUintptr:
-		v.Value = fmt.Sprintf("%v", rv)
-	case rBool:
-		v.Value = strconv.FormatBool(rv.Bool())
-	case rFloat32, rFloat64, rComplex128, rComplex64:
-		v.Value = fmt.Sprintf("%v", rv)
-	case rString:
-		v.Value = fmt.Sprintf("%q", rv.String())
-	default:
-		v.Value = fmt.Sprintf("%[1]v (%[1]T)", rv)
-	}
+	vp := newValuePrinter(128)
+	vp.print(rv)
+	v.Value = vp.String()
 
 	switch rv.Kind() {
 	case rInterface, rPtr:
@@ -194,4 +182,67 @@ func (v *mapVars) Variables(a *Adapter) []*dap.Variable {
 		vars[i] = a.newVar(k.String(), v.MapIndex(k))
 	}
 	return vars
+}
+
+type valuePrinter struct {
+	maxLength int
+	size      int
+	buffer    *bytes.Buffer
+}
+
+func newValuePrinter(max int) *valuePrinter {
+	return &valuePrinter{maxLength: max, buffer: new(bytes.Buffer)}
+}
+
+func (p *valuePrinter) print(rv reflect.Value) {
+	switch rv.Kind() {
+	case rChan, rFunc, rInterface, rMap, rPtr, rArray, rStruct:
+		fmt.Fprint(p, rv.Type().String())
+	case rInt, rInt8, rInt16, rInt32, rInt64:
+		fmt.Fprint(p, strconv.FormatInt(rv.Int(), 10))
+	case rUint8, rUint16, rUint, rUint32, rUint64, rUintptr:
+		fmt.Fprint(p, fmt.Sprintf("%v", rv))
+	case rBool:
+		fmt.Fprint(p, strconv.FormatBool(rv.Bool()))
+	case rFloat32, rFloat64, rComplex128, rComplex64:
+		fmt.Fprint(p, fmt.Sprintf("%v", rv))
+	case rString:
+		fmt.Fprint(p, fmt.Sprintf("%q", rv.String()))
+	case rSlice:
+		fmt.Fprint(p, rv.Type().String())
+		fmt.Fprint(p, "{")
+		for i := 0; i < rv.Len(); i++ {
+			if i > 0 {
+				fmt.Fprint(p, ",")
+			}
+			p.print(rv.Index(i))
+		}
+		fmt.Fprint(p, "}")
+	default:
+		fmt.Fprintf(p, "%[1]T %[1]v", rv)
+	}
+}
+
+func (p *valuePrinter) full() bool {
+	return p.maxLength-p.buffer.Len() == 0
+}
+
+func (p *valuePrinter) String() string {
+	if p.full() {
+		p.buffer.WriteString("...")
+	}
+	return p.buffer.String()
+}
+
+func (p *valuePrinter) Write(b []byte) (n int, err error) {
+	rem := p.maxLength - p.size
+	if rem <= 0 {
+		return 0, nil
+	}
+	if len(b) > rem {
+		p.size += rem
+		return p.buffer.Write(b[:rem])
+	}
+	p.size += len(b)
+	return p.buffer.Write(b)
 }
