@@ -34,12 +34,12 @@ func TestNewVar_Value(t *testing.T) {
 		{"float32", reflect.ValueOf(float32(3.14159)), "3.14159"},
 		{"float64", reflect.ValueOf(float64(3.14159)), "3.14159"},
 		{"[]int", reflect.ValueOf([]int{}), "[]int{}"},
-		{"[]int{21}", reflect.ValueOf([]int{21}), "[]int{21}"},
+		{"[]int{21,42}", reflect.ValueOf([]int{21, 42}), "[]int{21,42}"},
 		{"[2]bool{false, true}", reflect.ValueOf([2]bool{false, true}), "[2]bool{false,true}"},
 		{"func", reflect.ValueOf(a.newVar), "func(string, reflect.Value) *dap.Variable"},
 		{"struct", reflect.ValueOf(a), "*dbg.Adapter"},
 		{"map", reflect.ValueOf(map[bool]bool{}), "map[bool]bool{}"},
-		{"map[int]int{-1:2,3:-4}", reflect.ValueOf(map[int]int{-1: 2, 3: -4}), "map[int]int{-1:2,3:-4}"},
+		{"map[int]int{-1:2}", reflect.ValueOf(map[int]int{-1: 2}), "map[int]int{-1:2}"},
 		{"unsafe", reflect.ValueOf(u), fmt.Sprintf("reflect.Value %v", u)},
 	}
 	for _, each := range cases {
@@ -69,5 +69,17 @@ func TestValuePrinterSmallMaxLength(t *testing.T) {
 				t.Errorf("got [%[1]v:%[1]T] want [%[2]v:%[2]T]", got, want)
 			}
 		})
+	}
+}
+
+func TestValuePrinterPrintString(t *testing.T) {
+	vp := newValuePrinter(7)
+	rv := reflect.ValueOf("yaegi")
+	if got, want := vp.printString(rv), `"yaegi"`; got != want {
+		t.Errorf("got [%[1]v:%[1]T] want [%[2]v:%[2]T]", got, want)
+	}
+	// buffer is reset
+	if got, want := vp.printString(rv), `"yaegi"`; got != want {
+		t.Errorf("got [%[1]v:%[1]T] want [%[2]v:%[2]T]", got, want)
 	}
 }

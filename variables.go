@@ -178,8 +178,9 @@ type mapVars struct {
 func (v *mapVars) Variables(a *Adapter) []*dap.Variable {
 	keys := v.MapKeys()
 	vars := make([]*dap.Variable, len(keys))
+	vp := newValuePrinter(16)
 	for i, k := range keys {
-		vars[i] = a.newVar(k.String(), v.MapIndex(k))
+		vars[i] = a.newVar(vp.printString(k), v.MapIndex(k))
 	}
 	return vars
 }
@@ -187,12 +188,21 @@ func (v *mapVars) Variables(a *Adapter) []*dap.Variable {
 // valuePrinter is for printing reflect.Value instances on a bounded buffer.
 type valuePrinter struct {
 	maxLength int
-	size      int
+	size      int // length of string before full
 	buffer    *bytes.Buffer
 }
 
 func newValuePrinter(max int) *valuePrinter {
 	return &valuePrinter{maxLength: max, buffer: new(bytes.Buffer)}
+}
+
+// printString returns the printed string; the valuePrinter can be reused.
+func (p *valuePrinter) printString(rv reflect.Value) string {
+	p.print(rv)
+	s := p.String()
+	p.buffer.Reset()
+	p.size = 0
+	return s
 }
 
 func (p *valuePrinter) print(rv reflect.Value) {
@@ -237,14 +247,11 @@ func (p *valuePrinter) print(rv reflect.Value) {
 	}
 }
 
-func (p *valuePrinter) full() bool {
-	return p.maxLength-p.buffer.Len() == 0
-}
-
-// String implements Stringer
+// String implements fmt.Stringer
 func (p *valuePrinter) String() string {
 	s := p.buffer.String()
-	if p.full() {
+	// full?
+	if p.maxLength-p.size < 0 {
 		s += "..."
 	}
 	return s
@@ -256,10 +263,9 @@ func (p *valuePrinter) Write(b []byte) (n int, err error) {
 	if rem <= 0 {
 		return 0, nil
 	}
+	p.size += len(b)
 	if len(b) > rem {
-		p.size += rem
 		return p.buffer.Write(b[:rem])
 	}
-	p.size += len(b)
 	return p.buffer.Write(b)
 }
