@@ -33,11 +33,13 @@ func TestNewVar_Value(t *testing.T) {
 		{"string", reflect.ValueOf("shoe"), `"shoe"`},
 		{"float32", reflect.ValueOf(float32(3.14159)), "3.14159"},
 		{"float64", reflect.ValueOf(float64(3.14159)), "3.14159"},
-		{"[]int", reflect.ValueOf([]int{21}), "[]int{21}"},
-		{"[]int", reflect.ValueOf([]int{21}), "[]int{21}"},
+		{"[]int", reflect.ValueOf([]int{}), "[]int{}"},
+		{"[]int{21}", reflect.ValueOf([]int{21}), "[]int{21}"},
+		{"[2]bool{false, true}", reflect.ValueOf([2]bool{false, true}), "[2]bool{false,true}"},
 		{"func", reflect.ValueOf(a.newVar), "func(string, reflect.Value) *dap.Variable"},
 		{"struct", reflect.ValueOf(a), "*dbg.Adapter"},
-		{"map", reflect.ValueOf(map[bool]bool{}), "map[bool]bool"},
+		{"map", reflect.ValueOf(map[bool]bool{}), "map[bool]bool{}"},
+		{"map[int]int{-1:2,3:-4}", reflect.ValueOf(map[int]int{-1: 2, 3: -4}), "map[int]int{-1:2,3:-4}"},
 		{"unsafe", reflect.ValueOf(u), fmt.Sprintf("reflect.Value %v", u)},
 	}
 	for _, each := range cases {
@@ -57,7 +59,7 @@ func TestValuePrinterSmallMaxLength(t *testing.T) {
 		out   string
 	}{
 		{"string", reflect.ValueOf("some long text that is cut"), `"some lo...`},
-		{"a := []int{12345678}", reflect.ValueOf([]int{12345678, 23456789}), "[]int{12..."},
+		{"[]int{12345678}", reflect.ValueOf([]int{12345678, 23456789}), "[]int{12..."},
 	}
 	for _, each := range cases {
 		t.Run(each.name, func(t *testing.T) {

@@ -184,6 +184,7 @@ func (v *mapVars) Variables(a *Adapter) []*dap.Variable {
 	return vars
 }
 
+// valuePrinter is for printing reflect.Value instances on a bounded buffer.
 type valuePrinter struct {
 	maxLength int
 	size      int
@@ -196,19 +197,32 @@ func newValuePrinter(max int) *valuePrinter {
 
 func (p *valuePrinter) print(rv reflect.Value) {
 	switch rv.Kind() {
-	case rChan, rFunc, rInterface, rMap, rPtr, rArray, rStruct:
+	case rChan, rFunc, rInterface, rPtr, rStruct:
 		fmt.Fprint(p, rv.Type().String())
 	case rInt, rInt8, rInt16, rInt32, rInt64:
 		fmt.Fprint(p, strconv.FormatInt(rv.Int(), 10))
 	case rUint8, rUint16, rUint, rUint32, rUint64, rUintptr:
-		fmt.Fprint(p, fmt.Sprintf("%v", rv))
+		fmt.Fprintf(p, "%v", rv)
 	case rBool:
 		fmt.Fprint(p, strconv.FormatBool(rv.Bool()))
 	case rFloat32, rFloat64, rComplex128, rComplex64:
-		fmt.Fprint(p, fmt.Sprintf("%v", rv))
+		fmt.Fprintf(p, "%v", rv)
 	case rString:
-		fmt.Fprint(p, fmt.Sprintf("%q", rv.String()))
-	case rSlice:
+		fmt.Fprintf(p, "%q", rv.String())
+	case rMap:
+		fmt.Fprint(p, rv.Type().String())
+		fmt.Fprint(p, "{")
+		for i, k := range rv.MapKeys() {
+			if i > 0 {
+				fmt.Fprint(p, ",")
+			}
+			p.print(k)
+			fmt.Fprint(p, ":")
+			p.print(rv.MapIndex(k))
+		}
+		fmt.Fprint(p, "}")
+
+	case rSlice, rArray:
 		fmt.Fprint(p, rv.Type().String())
 		fmt.Fprint(p, "{")
 		for i := 0; i < rv.Len(); i++ {
@@ -227,13 +241,16 @@ func (p *valuePrinter) full() bool {
 	return p.maxLength-p.buffer.Len() == 0
 }
 
+// String implements Stringer
 func (p *valuePrinter) String() string {
+	s := p.buffer.String()
 	if p.full() {
-		p.buffer.WriteString("...")
+		s += "..."
 	}
-	return p.buffer.String()
+	return s
 }
 
+// Write implements io.Writer
 func (p *valuePrinter) Write(b []byte) (n int, err error) {
 	rem := p.maxLength - p.size
 	if rem <= 0 {
