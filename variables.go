@@ -218,6 +218,7 @@ func (p *valuePrinter) print(rv reflect.Value) {
 	case rPtr:
 		if rv.IsNil() {
 			fmt.Fprint(p, "nil")
+			return
 		}
 		fmt.Fprintf(p, "*")
 		p.print(rv.Elem())
