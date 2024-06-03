@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/traefik-contrib/yaegi-debug-adapter/pkg/dap"
 	"github.com/traefik/yaegi/interp"
@@ -207,7 +208,20 @@ func (p *valuePrinter) printString(rv reflect.Value) string {
 
 func (p *valuePrinter) print(rv reflect.Value) {
 	switch rv.Kind() {
-	case rChan, rFunc, rInterface, rPtr, rStruct:
+	case rStruct:
+		if rv.Type() == reflect.TypeOf(time.Time{}) {
+			t := rv.Interface().(time.Time)
+			fmt.Fprint(p, t.String())
+			return
+		}
+		fmt.Fprint(p, rv.Type().String())
+	case rPtr:
+		if rv.IsNil() {
+			fmt.Fprint(p, "nil")
+		}
+		fmt.Fprintf(p, "*")
+		p.print(rv.Elem())
+	case rChan, rFunc, rInterface:
 		fmt.Fprint(p, rv.Type().String())
 	case rInt, rInt8, rInt16, rInt32, rInt64:
 		fmt.Fprint(p, strconv.FormatInt(rv.Int(), 10))

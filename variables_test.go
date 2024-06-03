@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -11,6 +12,9 @@ func TestNewVar_Value(t *testing.T) {
 	a := &Adapter{vars: newVariables()}
 	var b chan bool
 	u := unsafe.Pointer(a)
+	now := time.Now()
+	var then *time.Time
+	i := 42
 
 	cases := []struct {
 		name  string
@@ -20,6 +24,7 @@ func TestNewVar_Value(t *testing.T) {
 		{"nil chan", reflect.ValueOf(b), "nil"},
 		{"int", reflect.ValueOf(int(-42)), "-42"},
 		{"int8", reflect.ValueOf(int8(-42)), "-42"},
+		{"*int", reflect.ValueOf(&i), "*42"},
 		{"int16", reflect.ValueOf(int16(-42)), "-42"},
 		{"int32", reflect.ValueOf(int32(-42)), "-42"},
 		{"int64", reflect.ValueOf(int64(12345)), "12345"},
@@ -41,6 +46,9 @@ func TestNewVar_Value(t *testing.T) {
 		{"map", reflect.ValueOf(map[bool]bool{}), "map[bool]bool{}"},
 		{"map[int]int{-1:2}", reflect.ValueOf(map[int]int{-1: 2}), "map[int]int{-1:2}"},
 		{"unsafe", reflect.ValueOf(u), fmt.Sprintf("reflect.Value %v", u)},
+		{"time", reflect.ValueOf(now), fmt.Sprintf("%v", now)},
+		{"*time", reflect.ValueOf(&now), fmt.Sprintf("*%v", now)},
+		{"nil *time", reflect.ValueOf(then), "nil"},
 	}
 	for _, each := range cases {
 		t.Run(each.name, func(t *testing.T) {
