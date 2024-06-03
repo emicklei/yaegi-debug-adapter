@@ -209,17 +209,20 @@ func (p *valuePrinter) printString(rv reflect.Value) string {
 func (p *valuePrinter) print(rv reflect.Value) {
 	switch rv.Kind() {
 	case rStruct:
+		// special case for time.Time
 		if rv.Type() == reflect.TypeOf(time.Time{}) {
 			t := rv.Interface().(time.Time)
+			fmt.Fprint(p, "time.Time ")
 			fmt.Fprint(p, t.String())
 			return
 		}
 		fmt.Fprint(p, rv.Type().String())
 	case rPtr:
 		if rv.IsNil() {
-			fmt.Fprint(p, "nil")
+			fmt.Fprint(p, fmt.Sprintf("%s nil", rv.Type().String()))
 			return
 		}
+		// try to show the value of the pointer element
 		fmt.Fprintf(p, "*")
 		p.print(rv.Elem())
 	case rChan, rFunc, rInterface:
