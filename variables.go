@@ -178,7 +178,7 @@ type mapVars struct {
 func (v *mapVars) Variables(a *Adapter) []*dap.Variable {
 	keys := v.MapKeys()
 	vars := make([]*dap.Variable, len(keys))
-	vp := newValuePrinter(16)
+	vp := newValuePrinter(64)
 	for i, k := range keys {
 		vars[i] = a.newVar(vp.printString(k), v.MapIndex(k))
 	}
