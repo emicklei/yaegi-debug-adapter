@@ -446,9 +446,10 @@ func (a *Adapter) Process(pm dap.IProtocolMessage) error {
 		result, err := a.interp.Eval(args.Expression)
 		if err != nil {
 			success = false
+			message = err.Error()
 		} else {
-			// want vpprinter here
-			message = fmt.Sprintf("%v", result)
+			success = true
+			message = fmt.Sprintf("%v", result) // want vpprinter here
 		}
 
 	default:
