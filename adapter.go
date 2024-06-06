@@ -441,6 +441,16 @@ func (a *Adapter) Process(pm dap.IProtocolMessage) error {
 		stop = true
 		success = true
 
+	case "evaluate":
+		args := m.Arguments.(*dap.EvaluateArguments)
+		result, err := a.interp.Eval(args.Expression)
+		if err != nil {
+			success = false
+		} else {
+			// want vpprinter here
+			message = fmt.Sprintf("%v", result)
+		}
+
 	default:
 		fmt.Fprintf(os.Stderr, "! unknown %q\n", m.Command)
 		message = fmt.Sprintf("Unknown command %q", m.Command)
