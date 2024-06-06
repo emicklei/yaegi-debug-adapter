@@ -1,15 +1,17 @@
 package dbg
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/traefik-contrib/yaegi-debug-adapter/pkg/dap"
 	"github.com/traefik/yaegi/interp"
 )
 
-//nolint:deadcode,varcheck // references
 const (
 	rBool          = reflect.Bool
 	rInt           = reflect.Int
@@ -91,12 +93,9 @@ func (a *Adapter) newVar(name string, rv reflect.Value) *dap.Variable {
 		return v
 	}
 
-	switch rv.Kind() {
-	case rChan, rFunc, rInterface, rMap, rPtr, rSlice, rArray, rStruct:
-		v.Value = rv.Type().String()
-	default:
-		v.Value = rv.String()
-	}
+	vp := newValuePrinter(128)
+	vp.print(rv)
+	v.Value = vp.String()
 
 	switch rv.Kind() {
 	case rInterface, rPtr:
@@ -179,8 +178,111 @@ type mapVars struct {
 func (v *mapVars) Variables(a *Adapter) []*dap.Variable {
 	keys := v.MapKeys()
 	vars := make([]*dap.Variable, len(keys))
+	vp := newValuePrinter(64)
 	for i, k := range keys {
-		vars[i] = a.newVar(k.String(), v.MapIndex(k))
+		vars[i] = a.newVar(vp.printString(k), v.MapIndex(k))
 	}
 	return vars
+}
+
+// valuePrinter is for printing reflect.Value instances on a bounded buffer.
+type valuePrinter struct {
+	maxLength int
+	size      int // length of string before full
+	buffer    *bytes.Buffer
+}
+
+func newValuePrinter(maximum int) *valuePrinter {
+	return &valuePrinter{maxLength: maximum, buffer: new(bytes.Buffer)}
+}
+
+// printString returns the printed string; the valuePrinter can be reused.
+func (p *valuePrinter) printString(rv reflect.Value) string {
+	p.print(rv)
+	s := p.String()
+	p.buffer.Reset()
+	p.size = 0
+	return s
+}
+
+func (p *valuePrinter) print(rv reflect.Value) {
+	switch rv.Kind() {
+	case rStruct:
+		// special case for time.Time
+		if rv.Type() == reflect.TypeOf(time.Time{}) {
+			t := rv.Interface().(time.Time)
+			fmt.Fprint(p, "time.Time "+t.String())
+			return
+		}
+		fmt.Fprint(p, rv.Type().String())
+	case rPtr:
+		if rv.IsNil() {
+			fmt.Fprintf(p, "%s nil", rv.Type().String())
+			return
+		}
+		// try to show the value of the pointer element
+		fmt.Fprintf(p, "*")
+		p.print(rv.Elem())
+	case rChan, rFunc, rInterface:
+		fmt.Fprint(p, rv.Type().String())
+	case rInt, rInt8, rInt16, rInt32, rInt64:
+		fmt.Fprint(p, strconv.FormatInt(rv.Int(), 10))
+	case rUint8, rUint16, rUint, rUint32, rUint64, rUintptr:
+		fmt.Fprintf(p, "%v", rv)
+	case rBool:
+		fmt.Fprint(p, strconv.FormatBool(rv.Bool()))
+	case rFloat32, rFloat64, rComplex128, rComplex64:
+		fmt.Fprintf(p, "%v", rv)
+	case rString:
+		fmt.Fprintf(p, "%q", rv.String())
+	case rMap:
+		fmt.Fprint(p, rv.Type().String())
+		fmt.Fprint(p, "{")
+		for i, k := range rv.MapKeys() {
+			if i > 0 {
+				fmt.Fprint(p, ",")
+			}
+			p.print(k)
+			fmt.Fprint(p, ":")
+			p.print(rv.MapIndex(k))
+		}
+		fmt.Fprint(p, "}")
+
+	case rSlice, rArray:
+		fmt.Fprint(p, rv.Type().String())
+		fmt.Fprint(p, "{")
+		for i := 0; i < rv.Len(); i++ {
+			if i > 0 {
+				fmt.Fprint(p, ",")
+			}
+			p.print(rv.Index(i))
+		}
+		fmt.Fprint(p, "}")
+	default:
+		fmt.Fprintf(p, "%[1]T %[1]v", rv)
+	}
+}
+
+func (p *valuePrinter) String() string {
+	s := p.buffer.String()
+	// full?
+	if p.maxLength-p.size < 0 {
+		s += "..."
+	}
+	return s
+}
+
+func (p *valuePrinter) Write(b []byte) (n int, err error) {
+	rem := p.maxLength - p.size
+	if rem <= 0 {
+		return 0, nil
+	}
+
+	p.size += len(b)
+
+	if len(b) > rem {
+		return p.buffer.Write(b[:rem])
+	}
+
+	return p.buffer.Write(b)
 }

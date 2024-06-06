@@ -139,7 +139,6 @@ issues:
       linters:
         - forbidigo
 
-
 output:
   sort-results: true
   sort-order:
